@@ -134,16 +134,36 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   MX_SDMMC2_SD_Init();
   /* USER CODE BEGIN 2 */
-  uint8_t sd_tx_buffer = 3;
-  uint8_t status = HAL_SD_WriteBlocks(&hsd2, &sd_tx_buffer, 0x20000, 1, 500);
-
-  uint8_t sd_rx_buffer = 0;
-  status = HAL_SD_ReadBlocks (&hsd2, &sd_rx_buffer, 0x20000, 1, 500);
+  uint8_t sd_tx_buffer[512];
+  sd_tx_buffer[0] = 3;
+  HAL_StatusTypeDef status = HAL_SD_WriteBlocks(&hsd2, sd_tx_buffer, 0x20000, 1, 500);
   if (status != HAL_OK) {
-	  return -1;
+    printf("MCU raised status %x when writing blocks\n", status);
+    return -1;
+  }
+  HAL_SD_CardStateTypeDef card_status;
+  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_READY) { // Wait for card to finish writing
+	if (card_status == HAL_SD_CARD_DISCONNECTED || card_status == HAL_SD_CARD_ERROR) {
+		printf("Card raised status %lx while writing blocks\n", card_status);
+		return -1;
+	}
   }
 
-  printf("%x", sd_rx_buffer);
+
+  uint8_t sd_rx_buffer[512];
+  status = HAL_SD_ReadBlocks (&hsd2, sd_rx_buffer, 0x20000, 1, 500);
+  if (status != HAL_OK) {
+	printf("MCU raised status %x when reading blocks\n", status);
+	return -1;
+  }
+  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_READY) { // Wait for card to finish reading
+  	if (card_status == HAL_SD_CARD_DISCONNECTED || card_status == HAL_SD_CARD_ERROR) {
+  		printf("Card raised status %lx while reading blocks\n", card_status);
+  		return -1;
+  	}
+    }
+
+  printf("Wrote %d, returned %d\n", sd_tx_buffer[0], sd_rx_buffer[0]);
   /* USER CODE END 2 */
 
   /* Infinite loop */
