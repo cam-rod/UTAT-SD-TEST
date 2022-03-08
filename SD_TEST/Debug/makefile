@@ -61,8 +61,8 @@ all: main-build
 main-build: SD_TEST.elf secondary-outputs
 
 # Tool invocations
-SD_TEST.elf: $(OBJS) $(USER_OBJS) C:\Users\justi\MCU1_Course_Resources\MCU1\SD_TEST\STM32H743ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "SD_TEST.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\justi\MCU1_Course_Resources\MCU1\SD_TEST\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SD_TEST.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+SD_TEST.elf: $(OBJS) $(USER_OBJS) C:\Users\justi\STM32CubeIDE\UTAT_Finch\UTAT-SD-TEST\SD_TEST\STM32H743ZITX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SD_TEST.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m7 -T"C:\Users\justi\STM32CubeIDE\UTAT_Finch\UTAT-SD-TEST\SD_TEST\STM32H743ZITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SD_TEST.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

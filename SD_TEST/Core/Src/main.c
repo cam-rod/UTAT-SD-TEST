@@ -114,7 +114,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -134,8 +134,11 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   MX_SDMMC2_SD_Init();
   /* USER CODE BEGIN 2 */
+  uint8_t sd_tx_buffer = 3;
+  uint8_t status = HAL_SD_WriteBlocks(&hsd2, &sd_tx_buffer, 0x20000, 1, 500);
+
   uint8_t sd_rx_buffer = 0;
-  uint8_t status = HAL_SD_ReadBlocks (&hsd2, &sd_rx_buffer, 0x20000, 1, 500);
+  status = HAL_SD_ReadBlocks (&hsd2, &sd_rx_buffer, 0x20000, 1, 500);
   if (status != HAL_OK) {
 	  return -1;
   }
