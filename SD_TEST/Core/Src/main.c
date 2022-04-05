@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,26 +42,23 @@
 
 /* Private variables ---------------------------------------------------------*/
 #if defined ( __ICCARM__ ) /*!< IAR Compiler */
-
-#pragma location=0x30040000
+#pragma location=0x30000000
 ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-#pragma location=0x30040060
+#pragma location=0x30000200
 ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
-#pragma location=0x30040200
+#pragma location=0x30000260
 uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffers */
 
 #elif defined ( __CC_ARM )  /* MDK ARM Compiler */
 
-__attribute__((at(0x30040000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
-__attribute__((at(0x30040060))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
-__attribute__((at(0x30040200))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffer */
+__attribute__((at(0x30000000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
+__attribute__((at(0x30000200))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
+__attribute__((at(0x30000260))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffer */
 
 #elif defined ( __GNUC__ ) /* GNU Compiler */
-
 ETH_DMADescTypeDef DMARxDscrTab[ETH_RX_DESC_CNT] __attribute__((section(".RxDecripSection"))); /* Ethernet Rx DMA Descriptors */
 ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecripSection")));   /* Ethernet Tx DMA Descriptors */
 uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE] __attribute__((section(".RxArraySection"))); /* Ethernet Receive Buffers */
-
 #endif
 
 ETH_TxPacketConfig TxConfig;
@@ -114,7 +111,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-   HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -134,36 +131,37 @@ int main(void)
   MX_USB_OTG_FS_PCD_Init();
   MX_SDMMC2_SD_Init();
   /* USER CODE BEGIN 2 */
+  // Make sure the thing works
+  HAL_SD_CardStateTypeDef card_status;
   uint8_t sd_tx_buffer[512];
   sd_tx_buffer[0] = 3;
-  HAL_StatusTypeDef status = HAL_SD_WriteBlocks(&hsd2, sd_tx_buffer, 0x20000, 1, 500);
+  HAL_StatusTypeDef status = HAL_SD_WriteBlocks(&hsd2, sd_tx_buffer, 0x20000, 1, 5000);
   if (status != HAL_OK) {
-    printf("MCU raised status %x when writing blocks\n", status);
+    printf("MCU raised status %x, error code %lx, when writing blocks\r\n", status, hsd2.ErrorCode);
     return -1;
   }
-  HAL_SD_CardStateTypeDef card_status;
-  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_READY) { // Wait for card to finish writing
+  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_TRANSFER) { // Wait for card to finish writing
 	if (card_status == HAL_SD_CARD_DISCONNECTED || card_status == HAL_SD_CARD_ERROR) {
-		printf("Card raised status %lx while writing blocks\n", card_status);
+		printf("Card raised status %lx, error code %lx, while writing blocks\r\n", card_status, hsd2.ErrorCode);
 		return -1;
 	}
   }
 
 
   uint8_t sd_rx_buffer[512];
-  status = HAL_SD_ReadBlocks (&hsd2, sd_rx_buffer, 0x20000, 1, 500);
+  status = HAL_SD_ReadBlocks(&hsd2, sd_rx_buffer, 0x20000, 1, 500);
   if (status != HAL_OK) {
-	printf("MCU raised status %x when reading blocks\n", status);
+	printf("MCU raised status %x, error code %lx, when reading blocks\r\n", status, hsd2.ErrorCode);
 	return -1;
   }
-  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_READY) { // Wait for card to finish reading
+  while ((card_status = HAL_SD_GetCardState(&hsd2)) != HAL_SD_CARD_TRANSFER) { // Wait for card to finish reading
   	if (card_status == HAL_SD_CARD_DISCONNECTED || card_status == HAL_SD_CARD_ERROR) {
-  		printf("Card raised status %lx while reading blocks\n", card_status);
+  		printf("Card raised status %lx, error code %lx, while reading blocks\r\n", card_status, hsd2.ErrorCode);
   		return -1;
   	}
-    }
+  }
 
-  printf("Wrote %d, returned %d\n", sd_tx_buffer[0], sd_rx_buffer[0]);
+  printf("Wrote nothing, returned %d\r\n", /*sd_tx_buffer[0], */sd_rx_buffer[0]);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -189,11 +187,13 @@ void SystemClock_Config(void)
   /** Supply configuration update enable
   */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
+
   /** Configure the main internal regulator output voltage
   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
 
   while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
+
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
@@ -215,6 +215,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -303,7 +304,7 @@ static void MX_SDMMC2_SD_Init(void)
   hsd2.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
   hsd2.Init.BusWide = SDMMC_BUS_WIDE_4B;
   hsd2.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  hsd2.Init.ClockDiv = 0;
+  hsd2.Init.ClockDiv = 7;
   if (HAL_SD_Init(&hsd2) != HAL_OK)
   {
     Error_Handler();
@@ -517,5 +518,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
